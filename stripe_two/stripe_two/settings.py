@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '*y^=_v_g#(57ilmeh-nd8di_kgxrzv2*2&@9$d2w(7sxq2yz62'
+SECRET_KEY = os.environ.get('SETTINGS_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -123,6 +124,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 
-STRIPE_PUBLIC_KEY = "pk_test_51IMnLHFTiAaBFtb8MIVp4gVwZ5dYdQ46IsoX40idoq1FsbJWItxbPMcmTUKBy7WkzVQZ0F9yraIWkWiKqRonX8qp00TOP8J3dJ"
-STRIPE_SECRET_KEY = "sk_test_51IMnLHFTiAaBFtb8PqOxEN9D03gOTgz2ZQva6PmNhqf39ubmb5mSb7kG0idath9r99YpaKhrH6Zk6p6oObkE9d9n00m3H3o3qG"
+STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = ""
