@@ -1,8 +1,12 @@
 import stripe
+import json
 from django.conf import settings
-from django.http import JsonResponse
+from django.core.mail import send_mail
+from django.http import JsonResponse, HttpResponse
 from django.views import View
 from django.views.generic import TemplateView
+from django.views.decorators.csrf import csrf_exempt
+
 from .models import Product
 
 
@@ -51,9 +55,87 @@ class CreateCheckoutSessionView(View):
                     'quantity': 1,
                 },
             ],
+            metadata={
+                'product_id': product.id 
+            },
             mode = 'payment',
             success_url = YOUR_DOMAIN + '/success/',
             cancel_url = YOUR_DOMAIN + '/cancel/',
         )
         return JsonResponse({'id': checkout_session.id})
 
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        # Invalid payload
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return HttpResponse(status=400)
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        print(session)
+    # Fulfill the purchase...
+        customer_email = session["customer_details"]["email"]
+        product_id = session["metadata"]["product_id"]
+
+        product = Product.objects.get(id=product_id)
+        send_mail(
+            subject="Here is your product.",
+            message=f"Thanks for your purchase.Here is the product your ordered. The URL is {product.url} ",
+            recipient_list=[customer_email],
+            from_email="test@gmail.com",
+        )
+    elif event['type'] == "payment_intent.succeeded":
+        intent = event['data']['object']
+        print(intent)
+
+        stripe_customer_id = intent["customer"]
+        stripe_customer = stripe.Customer.retrieve(stripe_customer_id)
+
+        customer_email = stripe_customer["email"]
+        product_id = intent["metadata"]["product_id"]
+
+        product = Product.objects.get(id=product_id)
+
+        send_mail(
+            subject="Here is your product.",
+            message=f"Thanks for your purchase.Here is the product your ordered. The URL is {product.url} ",
+            recipient_list=[customer_email],
+            from_email="test@gmail.com",
+        )
+        # TODO -decide whether you want to send the file or the URL.
+        #fulfill_order(session)
+    # Passed signature verification.
+    return HttpResponse(status=200)
+
+class StripeIntentView(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            req_json = json.loads(request.body)
+            print(req_json["email"])
+            customer = stripe.Customer.create(email=req_json["email"])
+            print(customer)
+            product_id = self.kwargs["pk"]
+            product = Product.objects.get(id=product_id)
+            intent = stripe.PaymentIntent.create(
+                amount=product.price,
+                currency='usd',
+                customer=customer['id'],
+                metadata={
+                    "product_id": product.id
+                }
+            )
+            return JsonResponse({
+            'clientSecret': intent['client_secret']
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e) })

@@ -122,8 +122,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
-
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
-STRIPE_WEBHOOK_SECRET = ""
+
+STRIPE_WEBHOOK_SECRET = "whsec_Wo8sZTgqesmWcGQFNksMVfZa0khE63u9"
